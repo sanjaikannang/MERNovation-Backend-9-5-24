@@ -55,7 +55,12 @@ const productSchema = new Schema({
     farmer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
-    }
+    },
+
+    bids: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Bid'
+    }]
 
 });
 

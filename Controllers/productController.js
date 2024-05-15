@@ -2,6 +2,7 @@ import Product from '../Models/productModel.js';
 import Bid from "../Models/bidModel.js";
 import handleUpload from '../Services/cloudinaryService.js';
 
+
 // Function to Upload Product By the Farmer Role.
 export const uploadProduct = async (req, res) => {
   try {
@@ -136,7 +137,16 @@ export const getSpecificProduct = async (req, res) => {
   try {
     const productId = req.params.productId;
 
-    const product = await Product.findById(productId).populate('farmer', 'name email phoneNo');
+    const product = await Product.findById(productId)
+      .populate('farmer', 'name email phoneNo') // Populate farmer details
+      .populate({
+        path: 'bids',
+        select: 'bidder amount createdAt', // Select fields from Bid model
+        populate: {
+          path: 'bidder',
+          select: 'name' // Select name of the bidder
+        }
+      });
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -148,6 +158,7 @@ export const getSpecificProduct = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // Controller to get the Product Details of Current Login Farmer
