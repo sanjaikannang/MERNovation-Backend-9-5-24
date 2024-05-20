@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 
-const { Schema, model } = mongoose;
-
-const bidSchema = new Schema({
+const bidSchema = new mongoose.Schema({
     product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
@@ -20,13 +18,13 @@ const bidSchema = new Schema({
         required: true
     },
 
-    createdAt: {
+    bidTime: {
         type: Date,
         default: Date.now
     }
-    
+
 });
 
-const Bid = model('Bid', bidSchema);
+const Bid = mongoose.model('Bid', bidSchema);
 
 export default Bid;

@@ -1,50 +1,84 @@
 import Product from '../Models/productModel.js';
 import Bid from "../Models/bidModel.js";
 import handleUpload from '../Services/cloudinaryService.js';
+import mongoose from "mongoose";
+import moment from 'moment-timezone';
+import { sendWinningBidEmail } from '../Utils/emailService.js';
+import { scheduleCronJob } from "../Cron/cronJobs.js";
 
 
 // Function to Upload Product By the Farmer Role.
 export const uploadProduct = async (req, res) => {
   try {
-    // Check if user is a Farmer
+    // Check if the user is a Farmer
     if (req.user.role !== 'Farmer') {
-      // If user is not a Farmer, return Forbidden response
       return res.status(403).json({ message: 'Forbidden: Only Farmers can upload products' });
     }
 
-    // Check if files are uploaded and there are exactly 3 images
+    // Check if exactly 3 images are uploaded
     if (!req.files || req.files.length !== 3) {
       return res.status(400).json({ message: 'Please upload exactly 3 images' });
     }
 
-    const imageUrls = [];
-    for (const file of req.files) {
-      // Convert each image buffer to base64 data URL
-      const fileDataURI = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-      // Upload image to Cloudinary
-      const cldRes = await handleUpload(fileDataURI);
-      imageUrls.push(cldRes.secure_url);
+    // Destructure the necessary fields from the request body
+    const { bidStartTime, bidEndTime, startingDate, endingDate, name, description, startingPrice, quantity } = req.body;
+
+    // Convert provided IST times to Date objects without converting to UTC
+    const bidStart = new Date(bidStartTime);
+    const bidEnd = new Date(bidEndTime);
+    const start = new Date(startingDate);
+    const end = new Date(endingDate);
+
+    // Validate bid start and end times
+    const minDuration = 2 * 60 * 1000; // 10 minutes in milliseconds
+    const maxDuration = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+    if (bidStart < start || bidEnd > end || (bidEnd - bidStart) < minDuration || (bidEnd - bidStart) > maxDuration) {
+      return res.status(400).json({
+        message: 'Invalid bidding time. Ensure bidding time is within the given date range and between 10 minutes and 2 hours.'
+      });
     }
 
-    // Create new product
+    // Array to hold the URLs of the uploaded images
+    const imageUrls = [];
+
+    // Loop through the uploaded files and upload them to Cloudinary
+    for (const file of req.files) {
+      const fileDataURI = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`; // Convert file buffer to Data URI
+      const cldRes = await handleUpload(fileDataURI); // Upload to Cloudinary
+      imageUrls.push(cldRes.secure_url); // Add the secure URL to the array
+    }
+
+    // Create a new Product object with the provided times
     const newProduct = new Product({
-      name: req.body.name,
-      description: req.body.description,
-      startingPrice: req.body.startingPrice,
-      startingDate: req.body.startingDate,
-      endingDate: req.body.endingDate,
-      quantity: req.body.quantity,
+      name,
+      description,
+      startingPrice,
+      startingDate: start,
+      endingDate: end,
+      bidStartTime: bidStart,
+      bidEndTime: bidEnd,
+      quantity,
       images: imageUrls,
-      farmer: req.user._id // Assign the farmer ID to the product
+      farmer: req.user._id
     });
 
-    // Save product to database
+    // Save the new product to the database
     const savedProduct = await newProduct.save();
 
-    // Send response with product details and farmer details
+    // Respond with success message and product details
+
+    const savedProductIST = {
+      ...savedProduct.toObject(),
+      startingDate: moment(savedProduct.startingDate).tz('Asia/Kolkata').format(),
+      endingDate: moment(savedProduct.endingDate).tz('Asia/Kolkata').format(),
+      bidStartTime: moment(savedProduct.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment(savedProduct.bidEndTime).tz('Asia/Kolkata').format()
+    };
+
     res.status(201).json({
       message: 'Product created successfully',
-      product: savedProduct,
+      product: savedProductIST,
       farmer: {
         id: req.user._id,
         name: req.user.name,
@@ -52,10 +86,12 @@ export const uploadProduct = async (req, res) => {
       }
     });
   } catch (error) {
+    // Handle any errors that occur
     console.error('Error uploading product:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
 
 
 // Controller to verify product
@@ -87,7 +123,16 @@ export const verifyProduct = async (req, res) => {
       }
       // Save the updated product
       await product.save();
-      return res.status(200).json({ message: `Product ${status}`, product });
+      // Return response with current time in IST format
+      return res.status(200).json({
+        message: `Product ${status}`,
+        product: {
+          ...product.toObject(),
+          bidStartTime: moment(product.bidStartTime).tz('Asia/Kolkata').format(),
+          bidEndTime: moment(product.bidEndTime).tz('Asia/Kolkata').format()
+        },
+        currentTimeIST: moment().tz('Asia/Kolkata').format()
+      });
     } else {
       return res.status(400).json({ message: 'Invalid status' }); // If status is invalid, return Bad Request response
     }
@@ -98,44 +143,70 @@ export const verifyProduct = async (req, res) => {
 };
 
 
+
 // Controller to get all Products with Farmer Details
 export const getProducts = async (req, res) => {
   try {
-      const products = await Product.find().populate('farmer', 'name email phoneNo');
+    const products = await Product.find().populate('farmer', 'name email phoneNo');
+    const currentTimeIST = moment().tz('Asia/Kolkata').format(); // Get current time in IST format
 
-      if (!products || products.length === 0) {
-          return res.status(404).json({ message: "No products found" });
-      }
+    if (!products || products.length === 0) {
+      return res.status(404).json({ message: "No products found", currentTimeIST });
+    }
 
-      res.status(200).json(products);
+    // Format bid start time and end time in IST format for each product
+    const formattedProducts = products.map(product => ({
+      ...product.toObject(),
+      bidStartTime: moment(product.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment(product.bidEndTime).tz('Asia/Kolkata').format()
+    }));
+
+    // Return response with formatted products and current time in IST format
+    res.status(200).json({ products: formattedProducts, currentTimeIST });
   } catch (error) {
-      console.error("Error in getProducts controller:", error.message);
-      res.status(500).json({ message: "Server Error" });
+    console.error("Error in getProducts controller:", error.message);
+    res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // Controller to get all products with farmer details for Buyers (Accepted Product Only)
 export const getAllAcceptedProducts = async (req, res) => {
   try {
-      const products = await Product.find({ status: 'accepted' }).populate('farmer', 'name email phoneNo');
+    const products = await Product.find({ status: 'accepted' }).populate('farmer', 'name email phoneNo');
+    const currentTimeIST = moment().tz('Asia/Kolkata').format(); // Get current time in IST format
 
-      if (!products || products.length === 0) {
-          return res.status(404).json({ message: "No accepted products found" });
-      }
+    if (!products || products.length === 0) {
+      return res.status(404).json({ message: "No accepted products found", currentTimeIST });
+    }
 
-      res.status(200).json(products);
+    // Format bid start time and end time in IST format for each product
+    const formattedProducts = products.map(product => ({
+      ...product.toObject(),
+      bidStartTime: moment(product.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment(product.bidEndTime).tz('Asia/Kolkata').format()
+    }));
+
+    // Return response with formatted products and current time in IST format
+    res.status(200).json({ products: formattedProducts, currentTimeIST });
   } catch (error) {
-      console.error("Error in getAllAcceptedProducts controller:", error.message);
-      res.status(500).json({ message: "Server Error" });
+    console.error("Error in getAllAcceptedProducts controller:", error.message);
+    res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // Controller to get the Specific Product Details
 export const getSpecificProduct = async (req, res) => {
   try {
     const productId = req.params.productId;
+
+    // Check if productId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid Product ID" });
+    }
 
     const product = await Product.findById(productId)
       .populate('farmer', 'name email phoneNo') // Populate farmer details
@@ -152,7 +223,14 @@ export const getSpecificProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    res.status(200).json(product);
+    // Format bid start time and end time in IST format
+    const formattedProduct = {
+      ...product.toObject(),
+      bidStartTime: moment(product.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment(product.bidEndTime).tz('Asia/Kolkata').format()
+    };
+
+    res.status(200).json(formattedProduct);
   } catch (error) {
     console.error("Error in getSpecificProduct controller:", error.message);
     res.status(500).json({ message: "Server Error" });
@@ -179,7 +257,14 @@ export const getCurrentLoginProducts = async (req, res) => {
       return res.status(404).json({ message: "No products found for the current farmer" });
     }
 
-    res.status(200).json(products);
+    // Format bid start time and end time for each product
+    const formattedProducts = products.map(product => ({
+      ...product.toObject(),
+      bidStartTime: moment(product.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment(product.bidEndTime).tz('Asia/Kolkata').format()
+    }));
+
+    res.status(200).json(formattedProducts);
   } catch (error) {
     console.error("Error in getCurrentLoginProducts controller:", error.message);
     res.status(500).json({ message: "Server Error" });
@@ -187,72 +272,117 @@ export const getCurrentLoginProducts = async (req, res) => {
 };
 
 
-// Controller to place a bid on a product
+scheduleCronJob();
+
+// Controller function to place a bid on a product
 export const placeBid = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const { bidAmount } = req.body;
-    const userId = req.user._id;
+    const { productId } = req.params; // Get product ID from request params
+    const { bidAmount } = req.body; // Get bid amount from request body
 
-    // Check if the bid amount is valid
-    const product = await Product.findById(productId);
+    // Validate product ID
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    // Find the product by ID and populate bids and highestBid.bidder
+    const product = await Product.findById(productId).populate('bids').populate('highestBid.bidder');
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-    if (bidAmount <= product.startingPrice) {
-      return res.status(400).json({ message: "Bid amount must be higher than the starting price" });
+      return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Check if bidding window is open
-    const currentDate = new Date();
-    if (currentDate < product.startingDate || currentDate > product.endingDate) {
-      return res.status(400).json({ message: "Bidding for this product is closed" });
+    // Get current time in IST using Moment.js
+    const currentTimeIST = moment().tz('Asia/Kolkata');
+
+    // Check if current time is within bidding time
+    if (currentTimeIST < moment(product.bidStartTime).tz('Asia/Kolkata') ||
+      currentTimeIST > moment(product.bidEndTime).tz('Asia/Kolkata')) {
+      return res.status(400).json({ message: 'Bidding time is not valid' });
     }
 
-    // Get the highest bid for the product
-    const highestBid = await Bid.findOne({ product: productId }).sort({ amount: -1 });
-    const highestBidAmount = highestBid ? highestBid.amount : product.startingPrice;
-
-    // Check if the bid amount is higher than the highest bid
-    if (bidAmount <= highestBidAmount) {
-      return res.status(400).json({ message: "Bid amount must be higher than the highest bid" });
+    // Check if bid amount is higher than current highest bid
+    if (bidAmount <= product.startingPrice ||
+      (product.highestBid && bidAmount <= product.highestBid.amount)) {
+      return res.status(400).json({ message: 'Bid amount must be higher than the current highest bid' });
     }
 
-    // Check if the user already has a bid on this product
-    const existingBid = await Bid.findOne({ product: productId, bidder: userId });
-    if (existingBid && bidAmount <= existingBid.amount) {
-      return res.status(400).json({ message: "Bid amount must be higher than your previous bid" });
-    }
-
-    // Create a new bid
+    // Create a new Bid object
     const newBid = new Bid({
       product: productId,
-      bidder: userId,
-      amount: bidAmount
+      bidder: req.user._id,
+      amount: bidAmount,
+      bidTime: currentTimeIST,
     });
 
-    // Save the bid
+    // Save the new bid to the database
     await newBid.save();
 
-    res.status(201).json({ message: "Bid placed successfully", bid: newBid });
+    // Update product's bids array and highest bid
+    product.bids.push(newBid._id);
+    product.highestBid = {
+      bidder: req.user._id,
+      amount: bidAmount,
+      bidTime: currentTimeIST,
+    };
+
+    // Save the updated product to the database
+    await product.save();
+
+    // Check if bidding time has ended
+    if (currentTimeIST > moment(product.bidEndTime).tz('Asia/Kolkata')) {
+      // console.log('Bidding time has ended. Sending email to the winning bidder...');
+
+      // Update product bidding status to indicate bidding has ended
+      product.biddingStatus = 'Bidding Ended';
+      await product.save();
+
+      // Send email to the winning bidder
+      await sendWinningBidEmail(product.highestBid.bidder.email, product);
+    }
+
+    // Respond with success message and the new bid
+    res.status(201).json({
+      message: 'Bid placed successfully',
+      bid: newBid,
+    });
   } catch (error) {
-    console.error("Error placing bid:", error.message);
-    res.status(500).json({ message: "Server Error" });
+    // console.error('Error placing bid:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
 
 
 // Controller to get all bids for a product
 export const getBidsForProduct = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { productId } = req.params; // Get product ID from request params
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    // Get the product to access bid start and end times
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Format bid start time and end time
+    const bidStartTime = moment(product.bidStartTime).tz('Asia/Kolkata').format();
+    const bidEndTime = moment(product.bidEndTime).tz('Asia/Kolkata').format();
 
     // Get all bids for the product
     const bids = await Bid.find({ product: productId }).populate('bidder', 'name');
 
-    res.status(200).json(bids);
+    // if (!bids || bids.length === 0) {
+    //   return res.status(404).json({ message: 'No bids found for this product', bidStartTime, bidEndTime });
+    // }
+
+    res.status(200).json({ bids, bidStartTime, bidEndTime });
   } catch (error) {
-    console.error("Error getting bids for product:", error.message);
+    // console.error("Error getting bids for product:", error.message);
     res.status(500).json({ message: "Server Error" });
   }
 };

@@ -32,6 +32,6 @@ router.get('/get-all-products-accepted', getAllAcceptedProducts);
 router.post('/bid-product/:productId', verifyToken, isBuyer, placeBid);
 
 // Route for getting all bids for a product
-router.get('/get-all-bids/:productId', verifyToken, isBuyer, getBidsForProduct);
+router.get('/get-all-bids/:productId', getBidsForProduct);
 
 export default router;

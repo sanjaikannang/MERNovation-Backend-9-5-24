@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 
-const { Schema, model } = mongoose;
-
-const productSchema = new Schema({
+const productSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true
@@ -28,6 +26,16 @@ const productSchema = new Schema({
         required: true
     },
 
+    bidStartTime: {
+        type: Date,
+        required: true
+    },
+
+    bidEndTime: {
+        type: Date,
+        required: true
+    },
+
     quantity: {
         type: Number,
         required: true
@@ -45,8 +53,7 @@ const productSchema = new Schema({
     },
 
     rejectionReason: String,
-    verifiedBy: String, // Admin who verified the product
-
+    verifiedBy: String,
     quality: {
         type: String,
         default: 'Not-Verified'
@@ -60,10 +67,30 @@ const productSchema = new Schema({
     bids: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Bid'
-    }]
+    }],
 
+    highestBid: {
+        bidder: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        amount: Number,
+        bidTime: Date
+    },
+
+    bidProcessed: {
+        type: Boolean,
+        default: false
+    },
+
+    biddingStatus: {
+        type: String,
+        enum: ['Active', 'Bidding Ended'],
+        default: 'Active'
+    }
+    
 });
 
-const Product = model('Product', productSchema);
+const Product = mongoose.model('Product', productSchema);
 
 export default Product;
