@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken, isAdmin, isBuyer } from '../Middlewares/auth.js';
-import { uploadProduct, verifyProduct, getProducts, getSpecificProduct, getCurrentLoginProducts, getAllAcceptedProducts, placeBid, getBidsForProduct } from '../Controllers/productController.js';
+import { uploadProduct, verifyProduct, getProducts, getSpecificProduct, getCurrentLoginProducts, getAllAcceptedProducts, placeBid, getBidsForProduct, handlePaymentForProduct, deleteProduct, getCurrentLoginBuyerDetails } from '../Controllers/productController.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -25,6 +25,9 @@ router.get('/get-specific-product/:productId', getSpecificProduct);
 // Route to geet the Current Login Farmer Product Details 
 router.get("/get-login-products", verifyToken, getCurrentLoginProducts);
 
+// Route For current login buyer details
+router.get("/get-login-buyer-details", verifyToken, getCurrentLoginBuyerDetails);
+
 // Route for getting all products for Buyer ( Accepted Product Only )
 router.get('/get-all-products-accepted', getAllAcceptedProducts);
 
@@ -33,5 +36,11 @@ router.post('/bid-product/:productId', verifyToken, isBuyer, placeBid);
 
 // Route for getting all bids for a product
 router.get('/get-all-bids/:productId', getBidsForProduct);
+
+// Route for Payment for a product
+router.get('/pay/:productId', verifyToken, isBuyer, handlePaymentForProduct);
+
+// Route For Deleeting the Product 
+router.delete("/delete/:productId", verifyToken, isAdmin, deleteProduct);
 
 export default router;

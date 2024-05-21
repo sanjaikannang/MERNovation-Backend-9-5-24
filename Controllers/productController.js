@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import moment from 'moment-timezone';
 import { sendWinningBidEmail } from '../Utils/emailService.js';
 import { scheduleCronJob } from "../Cron/cronJobs.js";
+import capturePayment from "../Utils/paymentProcessor.js"
 
 
 // Function to Upload Product By the Farmer Role.
@@ -271,6 +272,43 @@ export const getCurrentLoginProducts = async (req, res) => {
   }
 };
 
+// Controller to get the current login Buyer details 
+export const getCurrentLoginBuyerDetails = async (req, res) => {
+  try {
+    // Check if the user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized: No user token provided.' });
+    }
+
+    // Check if the authenticated user has the role of "Buyer"
+    if (req.user.role !== 'Buyer') {
+      return res.status(403).json({ message: 'Forbidden: Only buyers are allowed to access this resource.' });
+    }
+
+    // Fetch buyer details from your database or wherever they are stored
+    const buyerDetails = {
+      // Include whatever buyer details you want to return
+      // For example:
+      username: req.user.username,
+      email: req.user.email,
+      // Include any other relevant buyer information
+    };
+
+    // Find the winning product
+    const winningProduct = await Product.findOne({
+      'highestBid.bidder': req.user._id,
+      biddingStatus: 'Bidding Ended'
+    }).populate('bids.bidder'); // Populate the bidder details in bids array
+
+    // Respond with the buyer details and winning product
+    res.status(200).json({ buyer: buyerDetails, winningProduct });
+  } catch (error) {
+    console.error('Error getting current login buyer details:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
 
 scheduleCronJob();
 
@@ -388,3 +426,56 @@ export const getBidsForProduct = async (req, res) => {
 };
 
 
+// Controller for deleting the product
+export const deleteProduct = async (req, res) => {
+  try {
+    // Check if the user is authenticated and has admin role
+    if (req.user && req.user.role === 'admin') {
+      // Extract product ID from request parameters
+      const { productId } = req.params;
+      
+      // Your logic to delete the product by its ID (Assuming you have a Product model)
+      await Product.findByIdAndDelete(productId);
+
+      // Respond with success message
+      return res.status(200).json({ message: 'Product deleted successfully.' });
+    } else {
+      // If user is not authenticated or does not have admin role, respond with unauthorized error
+      return res.status(401).json({ message: 'Unauthorized to delete product.' });
+    }
+  } catch (error) {
+    // If an error occurs, respond with an error message
+    console.error('Error deleting product:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+// Controller function to handle payment for the product
+export const handlePaymentForProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { userId, amount } = req.body;
+
+    // Check if the user making the payment is the winning bidder for the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (product.status !== 'accepted' || product.highestBid.bidder.toString() !== userId) {
+      return res.status(403).json({ message: 'You are not the winning bidder for this product' });
+    }
+
+    // Proceed with capturing payment
+    const response = await capturePayment(req.body, req.headers['x-razorpay-signature']);
+
+    // Handle response and update payment status in your system
+    // For example, update product status to indicate successful payment
+
+    res.status(200).json({ message: 'Payment captured successfully' });
+  } catch (error) {
+    console.error('Error capturing payment:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
