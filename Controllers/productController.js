@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import { sendWinningBidEmail } from '../Utils/emailService.js';
 import { scheduleCronJob } from "../Cron/cronJobs.js";
 import capturePayment from "../Utils/paymentProcessor.js"
-
+import datauri from 'datauri';
 
 // Function to Upload Product By the Farmer Role.
 export const uploadProduct = async (req, res) => {
@@ -43,9 +43,15 @@ export const uploadProduct = async (req, res) => {
     // Array to hold the URLs of the uploaded images
     const imageUrls = [];
 
+
     // Loop through the uploaded files and upload them to Cloudinary
     for (const file of req.files) {
+      if (!file.mimetype || !file.buffer) {
+        throw new Error('Invalid file data');
+      }
       const fileDataURI = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`; // Convert file buffer to Data URI
+      // console.log(fileDataURI);
+
       const cldRes = await handleUpload(fileDataURI); // Upload to Cloudinary
       imageUrls.push(cldRes.secure_url); // Add the secure URL to the array
     }
@@ -433,7 +439,7 @@ export const deleteProduct = async (req, res) => {
     if (req.user && req.user.role === 'admin') {
       // Extract product ID from request parameters
       const { productId } = req.params;
-      
+
       // Your logic to delete the product by its ID (Assuming you have a Product model)
       await Product.findByIdAndDelete(productId);
 
