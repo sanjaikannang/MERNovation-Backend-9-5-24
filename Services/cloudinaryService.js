@@ -9,7 +9,7 @@ cloudinary.config({
 // Function to upload Image
 const handleUpload = async (file) => {
   try {
-    console.log(file);
+    // console.log(file);
     const res = await cloudinary.uploader.upload(file, {
       resource_type: 'auto',
     });

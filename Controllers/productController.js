@@ -6,7 +6,6 @@ import moment from 'moment-timezone';
 import { sendWinningBidEmail } from '../Utils/emailService.js';
 import { scheduleCronJob } from "../Cron/cronJobs.js";
 import capturePayment from "../Utils/paymentProcessor.js"
-import datauri from 'datauri';
 
 // Function to Upload Product By the Farmer Role.
 export const uploadProduct = async (req, res) => {
@@ -31,8 +30,8 @@ export const uploadProduct = async (req, res) => {
     const end = new Date(endingDate);
 
     // Validate bid start and end times
-    const minDuration = 2 * 60 * 1000; // 10 minutes in milliseconds
-    const maxDuration = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+    const minDuration = 10 * 60 * 1000; // 10 minutes in milliseconds
+    const maxDuration = 1 * 60 * 60 * 1000; // 1 hours in milliseconds
 
     if (bidStart < start || bidEnd > end || (bidEnd - bidStart) < minDuration || (bidEnd - bidStart) > maxDuration) {
       return res.status(400).json({
@@ -278,6 +277,7 @@ export const getCurrentLoginProducts = async (req, res) => {
   }
 };
 
+
 // Controller to get the current login Buyer details 
 export const getCurrentLoginBuyerDetails = async (req, res) => {
   try {
@@ -418,13 +418,12 @@ export const getBidsForProduct = async (req, res) => {
     const bidEndTime = moment(product.bidEndTime).tz('Asia/Kolkata').format();
 
     // Get all bids for the product
-    const bids = await Bid.find({ product: productId }).populate('bidder', 'name');
+    const bids = await Bid.find({ product: productId }).populate('bidder', 'name email');
 
-    // if (!bids || bids.length === 0) {
-    //   return res.status(404).json({ message: 'No bids found for this product', bidStartTime, bidEndTime });
-    // }
+    // Get the highest bid for the product
+    const highestBid = await Bid.findOne({ product: productId }).sort({ amount: -1 }).populate('bidder', 'name email');
 
-    res.status(200).json({ bids, bidStartTime, bidEndTime });
+    res.status(200).json({ bids, highestBid, bidStartTime, bidEndTime });
   } catch (error) {
     // console.error("Error getting bids for product:", error.message);
     res.status(500).json({ message: "Server Error" });
