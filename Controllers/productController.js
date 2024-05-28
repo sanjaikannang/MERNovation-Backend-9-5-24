@@ -82,6 +82,8 @@ export const uploadProduct = async (req, res) => {
       bidEndTime: moment(savedProduct.bidEndTime).tz('Asia/Kolkata').format()
     };
 
+    console.log(savedProductIST);
+    
     res.status(201).json({
       message: 'Product created successfully',
       product: savedProductIST,
