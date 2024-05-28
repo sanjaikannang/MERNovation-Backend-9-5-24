@@ -76,14 +76,14 @@ export const uploadProduct = async (req, res) => {
 
     const savedProductIST = {
       ...savedProduct.toObject(),
-      startingDate: moment(savedProduct.startingDate).tz('Asia/Kolkata').format(),
-      endingDate: moment(savedProduct.endingDate).tz('Asia/Kolkata').format(),
-      bidStartTime: moment(savedProduct.bidStartTime).tz('Asia/Kolkata').format(),
-      bidEndTime: moment(savedProduct.bidEndTime).tz('Asia/Kolkata').format()
+      startingDate: moment.utc(savedProduct.startingDate).tz('Asia/Kolkata').format(),
+      endingDate: moment.utc(savedProduct.endingDate).tz('Asia/Kolkata').format(),
+      bidStartTime: moment.utc(savedProduct.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment.utc(savedProduct.bidEndTime).tz('Asia/Kolkata').format()
     };
 
     console.log(savedProductIST);
-    
+
     res.status(201).json({
       message: 'Product created successfully',
       product: savedProductIST,
