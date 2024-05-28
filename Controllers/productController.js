@@ -165,8 +165,8 @@ export const getProducts = async (req, res) => {
     // Format bid start time and end time in IST format for each product
     const formattedProducts = products.map(product => ({
       ...product.toObject(),
-      bidStartTime: moment(product.bidStartTime).tz('Asia/Kolkata').format(),
-      bidEndTime: moment(product.bidEndTime).tz('Asia/Kolkata').format()
+      bidStartTime: moment(product.bidStartTime).format(),
+      bidEndTime: moment(product.bidEndTime).format()
     }));
 
     // Return response with formatted products and current time in IST format
