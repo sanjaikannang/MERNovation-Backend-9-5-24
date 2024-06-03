@@ -52,9 +52,9 @@ export const signup = async (req, res) => {
 // Function to handle user login
 export const login = async (req, res) => {
     try {
-        const { email, password, role } = req.body;
+        const { email, password } = req.body;
 
-        // Find the user based on the role (Admin, Farmer, Buyer)
+        // Find the user by email
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -64,11 +64,6 @@ export const login = async (req, res) => {
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
             return res.status(401).json({ message: 'Invalid email or password' });
-        }
-
-        // Check if the role matches
-        if (user.role !== role) {
-            return res.status(401).json({ message: 'Invalid role' });
         }
 
         // Generate JWT token

@@ -41,6 +41,10 @@ const productSchema = new mongoose.Schema({
         required: true
     },
 
+    totalBidAmount:{ 
+        type: Number,
+    },
+
     images: [{
         type: String,
         required: true
@@ -87,6 +91,11 @@ const productSchema = new mongoose.Schema({
         type: String,
         enum: ['Active', 'Bidding Ended'],
         default: 'Active'
+    },
+
+      shipping: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Shipping'
     }
     
 });

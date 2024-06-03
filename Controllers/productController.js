@@ -1,16 +1,17 @@
 import Product from '../Models/productModel.js';
 import Bid from "../Models/bidModel.js";
+import User from '../Models/userModel.js';
+import Order from '../Models/orderModel.js';
 import handleUpload from '../Services/cloudinaryService.js';
 import mongoose from "mongoose";
 import moment from 'moment-timezone';
 import { sendWinningBidEmail } from '../Utils/emailService.js';
 import { scheduleCronJob } from "../Cron/cronJobs.js";
-import capturePayment from "../Utils/paymentProcessor.js"
 
 // Function to Upload Product By the Farmer Role.
 export const uploadProduct = async (req, res) => {
   try {
-    // Check if the user is a Farmer
+    // Check if the user is authorized to upload products
     if (req.user.role !== 'Farmer') {
       return res.status(403).json({ message: 'Forbidden: Only Farmers can upload products' });
     }
@@ -20,42 +21,43 @@ export const uploadProduct = async (req, res) => {
       return res.status(400).json({ message: 'Please upload exactly 3 images' });
     }
 
-    // Destructure the necessary fields from the request body
+    // Destructure necessary fields from request body
     const { bidStartTime, bidEndTime, startingDate, endingDate, name, description, startingPrice, quantity } = req.body;
 
-    // Convert provided IST times to Date objects without converting to UTC
+    // Convert provided times to Date objects
     const bidStart = new Date(bidStartTime);
     const bidEnd = new Date(bidEndTime);
     const start = new Date(startingDate);
     const end = new Date(endingDate);
 
-    // Validate bid start and end times
-    const minDuration = 10 * 60 * 1000; // 10 minutes in milliseconds
-    const maxDuration = 1 * 60 * 60 * 1000; // 1 hours in milliseconds
+    // Define minimum and maximum bidding duration
+    const minDuration = 5 * 60 * 1000; // 10 minutes in milliseconds
+    const maxDuration = 1 * 60 * 60 * 1000; // 1 hour in milliseconds
 
+    // Validate bidding time
     if (bidStart < start || bidEnd > end || (bidEnd - bidStart) < minDuration || (bidEnd - bidStart) > maxDuration) {
       return res.status(400).json({
-        message: 'Invalid bidding time. Ensure bidding time is within the given date range and between 10 minutes and 2 hours.'
+        message: 'Invalid bidding time. Ensure bidding time is within the given date range and between 10 minutes and 1 hours.'
       });
     }
 
-    // Array to hold the URLs of the uploaded images
+    // Array to hold URLs of uploaded images
     const imageUrls = [];
 
-
-    // Loop through the uploaded files and upload them to Cloudinary
+    // Loop through uploaded files and upload them to Cloudinary
     for (const file of req.files) {
       if (!file.mimetype || !file.buffer) {
         throw new Error('Invalid file data');
       }
-      const fileDataURI = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`; // Convert file buffer to Data URI
-      // console.log(fileDataURI);
-
+      const fileDataURI = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
       const cldRes = await handleUpload(fileDataURI); // Upload to Cloudinary
-      imageUrls.push(cldRes.secure_url); // Add the secure URL to the array
+      imageUrls.push(cldRes.secure_url); // Add secure URL to the array
     }
 
-    // Create a new Product object with the provided times
+    // Calculate total bid amount
+    const totalBidAmount = startingPrice * quantity;
+
+    // Create a new Product object with provided data
     const newProduct = new Product({
       name,
       description,
@@ -65,6 +67,7 @@ export const uploadProduct = async (req, res) => {
       bidStartTime: bidStart,
       bidEndTime: bidEnd,
       quantity,
+      totalBidAmount, // Add total bid amount
       images: imageUrls,
       farmer: req.user._id
     });
@@ -72,18 +75,16 @@ export const uploadProduct = async (req, res) => {
     // Save the new product to the database
     const savedProduct = await newProduct.save();
 
-    // Respond with success message and product details
-
+    // Format dates to display in Indian Standard Time (IST)
     const savedProductIST = {
       ...savedProduct.toObject(),
       startingDate: moment.utc(savedProduct.startingDate).tz('Asia/Kolkata').format(),
       endingDate: moment.utc(savedProduct.endingDate).tz('Asia/Kolkata').format(),
-      bidStartTime: moment.utc(savedProduct.bidStartTime).format(),
-      bidEndTime: moment.utc(savedProduct.bidEndTime).format()
+      bidStartTime: moment.utc(savedProduct.bidStartTime).tz('Asia/Kolkata').format(),
+      bidEndTime: moment.utc(savedProduct.bidEndTime).tz('Asia/Kolkata').format()
     };
 
-    console.log(savedProductIST);
-
+    // Respond with success message and product details
     res.status(201).json({
       message: 'Product created successfully',
       product: savedProductIST,
@@ -101,13 +102,11 @@ export const uploadProduct = async (req, res) => {
 };
 
 
-
 // Controller to verify product
 export const verifyProduct = async (req, res) => {
   try {
     // Check if user is an admin
     if (req.user.role !== 'admin') {
-      // If user is not an admin, return Forbidden response
       return res.status(403).json({ message: 'Forbidden: Only admins can verify products' });
     }
 
@@ -116,21 +115,20 @@ export const verifyProduct = async (req, res) => {
 
     const product = await Product.findById(productId); // Find the product by ID
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' }); // If product not found, return Not Found response
+      return res.status(404).json({ message: 'Product not found' });
     }
 
     if (status === 'accepted' || status === 'rejected') {
       // If status is accepted or rejected, update product status accordingly
       product.status = status;
       if (status === 'rejected') {
-        // If status is rejected, add rejection reason
         product.rejectionReason = rejectionReason;
       } else if (status === 'accepted') {
-        // If status is accepted, mark product quality as initially not verified
         product.quality = 'Verified';
       }
       // Save the updated product
       await product.save();
+
       // Return response with current time in IST format
       return res.status(200).json({
         message: `Product ${status}`,
@@ -142,14 +140,13 @@ export const verifyProduct = async (req, res) => {
         currentTimeIST: moment().tz('Asia/Kolkata').format()
       });
     } else {
-      return res.status(400).json({ message: 'Invalid status' }); // If status is invalid, return Bad Request response
+      return res.status(400).json({ message: 'Invalid status' });
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal Server Error' }); // If an error occurs, return Internal Server Error response
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
-
 
 
 // Controller to get all Products with Farmer Details
@@ -178,7 +175,6 @@ export const getProducts = async (req, res) => {
 };
 
 
-
 // Controller to get all products with farmer details for Buyers (Accepted Product Only)
 export const getAllAcceptedProducts = async (req, res) => {
   try {
@@ -205,7 +201,6 @@ export const getAllAcceptedProducts = async (req, res) => {
 };
 
 
-
 // Controller to get the Specific Product Details
 export const getSpecificProduct = async (req, res) => {
   try {
@@ -225,17 +220,42 @@ export const getSpecificProduct = async (req, res) => {
           path: 'bidder',
           select: 'name' // Select name of the bidder
         }
+      })  .populate({
+        path: 'shipping', // Populate shipping details
+        select: 'stage timestamp adminId', // Select fields from Shipping model
+        populate: {
+          path: 'adminId',
+          select: 'username' // Assuming you have a field 'username' in your User model
+        }
       });
+
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    // Find the most recent order for the product
+    const order = await Order.findOne({ product: productId })
+      .sort({ createdAt: -1 }) // Sort by creation date in descending order
+      .populate('buyer', 'name')
+      .populate('farmer', 'name');
+
     // Format bid start time and end time in IST format
     const formattedProduct = {
       ...product.toObject(),
       bidStartTime: moment(product.bidStartTime).format(),
-      bidEndTime: moment(product.bidEndTime).format()
+      bidEndTime: moment(product.bidEndTime).format(),
+      order: order ? {
+        id: order._id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
+        status: order.status, // Ensure the status is from the DB
+        buyer: order.buyer.name, // Include buyer name
+        farmer: order.farmer.name, // Include farmer name
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      } : null, // Include order details or null if no order found
     };
 
     res.status(200).json(formattedProduct);
@@ -317,7 +337,6 @@ export const getCurrentLoginBuyerDetails = async (req, res) => {
 };
 
 
-
 scheduleCronJob();
 
 // Controller function to place a bid on a product
@@ -337,7 +356,7 @@ export const placeBid = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Get current time in IST using Moment.js
+    // Get current time in Indian Standard Time (IST) using Moment.js
     const currentTimeIST = moment().tz('Asia/Kolkata');
 
     // Check if current time is within bidding time
@@ -346,10 +365,9 @@ export const placeBid = async (req, res) => {
       return res.status(400).json({ message: 'Bidding time is not valid' });
     }
 
-    // Check if bid amount is higher than current highest bid
-    if (bidAmount <= product.startingPrice ||
-      (product.highestBid && bidAmount <= product.highestBid.amount)) {
-      return res.status(400).json({ message: 'Bid amount must be higher than the current highest bid' });
+    // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
+    if (bidAmount <= product.totalBidAmount || (product.highestBid && bidAmount <= product.highestBid.amount)) {
+      return res.status(400).json({ message: 'Bid amount must be higher than the total bid amount and other buyer bid amounts' });
     }
 
     // Create a new Bid object
@@ -376,8 +394,6 @@ export const placeBid = async (req, res) => {
 
     // Check if bidding time has ended
     if (currentTimeIST > moment(product.bidEndTime).tz('Asia/Kolkata')) {
-      // console.log('Bidding time has ended. Sending email to the winning bidder...');
-
       // Update product bidding status to indicate bidding has ended
       product.biddingStatus = 'Bidding Ended';
       await product.save();
@@ -392,11 +408,11 @@ export const placeBid = async (req, res) => {
       bid: newBid,
     });
   } catch (error) {
-    // console.error('Error placing bid:', error);
+    // Handle any errors that occur
+    console.error('Error placing bid:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
-
 
 
 // Controller to get all bids for a product
@@ -433,56 +449,3 @@ export const getBidsForProduct = async (req, res) => {
 };
 
 
-// Controller for deleting the product
-export const deleteProduct = async (req, res) => {
-  try {
-    // Check if the user is authenticated and has admin role
-    if (req.user && req.user.role === 'admin') {
-      // Extract product ID from request parameters
-      const { productId } = req.params;
-
-      // Your logic to delete the product by its ID (Assuming you have a Product model)
-      await Product.findByIdAndDelete(productId);
-
-      // Respond with success message
-      return res.status(200).json({ message: 'Product deleted successfully.' });
-    } else {
-      // If user is not authenticated or does not have admin role, respond with unauthorized error
-      return res.status(401).json({ message: 'Unauthorized to delete product.' });
-    }
-  } catch (error) {
-    // If an error occurs, respond with an error message
-    console.error('Error deleting product:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
-};
-
-
-// Controller function to handle payment for the product
-export const handlePaymentForProduct = async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const { userId, amount } = req.body;
-
-    // Check if the user making the payment is the winning bidder for the product
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    if (product.status !== 'accepted' || product.highestBid.bidder.toString() !== userId) {
-      return res.status(403).json({ message: 'You are not the winning bidder for this product' });
-    }
-
-    // Proceed with capturing payment
-    const response = await capturePayment(req.body, req.headers['x-razorpay-signature']);
-
-    // Handle response and update payment status in your system
-    // For example, update product status to indicate successful payment
-
-    res.status(200).json({ message: 'Payment captured successfully' });
-  } catch (error) {
-    console.error('Error capturing payment:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
