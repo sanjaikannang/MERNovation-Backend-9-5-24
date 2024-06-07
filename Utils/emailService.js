@@ -4,8 +4,8 @@ import nodemailer from 'nodemailer';
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'sanjaikannang@gmail.com', 
-    pass: 'rmop fyel onrs kykk', 
+    user: 'sanjaikannang@gmail.com',
+    pass: 'rmop fyel onrs kykk',
   },
 });
 
@@ -18,8 +18,9 @@ export const sendWinningBidEmail = async (winningBidderEmail, product) => {
       return;
     }
 
-    const totalAmount = product.quantity * product.highestBid.amount;
-    
+    // const totalAmount = product.quantity * product.highestBid.amount;
+    const totalBidAmount = product.quantity * product.startingPrice;
+
     // Construct HTML email content
     const htmlContent = `
     <html>
@@ -245,8 +246,12 @@ export const sendWinningBidEmail = async (winningBidderEmail, product) => {
                       <th>Quantity:</th>
                       <td>${product.quantity}</td>
                     </tr>
+                     <tr>
+                      <th>Starting Price :</th>
+                      <td>${product.startingPrice}</td>
+                    </tr>
                     <tr>
-                      <th>Highest Bid Amount:</th>
+                      <th>Your Bid Amount:</th>
                       <td>${product.highestBid.amount}</td>
                     </tr>
                   </table>
@@ -257,21 +262,22 @@ export const sendWinningBidEmail = async (winningBidderEmail, product) => {
                     <tr>
                       <th>Product Quantity:</th>
                       <td>${product.quantity}</td>
+                    </tr>                          
+                    <tr>
+                      <th>Total Bid Amount:</th>
+                      <td>
+  ( Quantity * Starting Price ) = ${totalBidAmount}
+                      </td>
                     </tr>
                     <tr>
-                      <th>Bid Amount:</th>
+                      <th>Your Bid Amount: </th>
                       <td>${product.highestBid.amount}</td>
-                    </tr>
-                    <tr>
-                      <th>Total Amount:</th>
-                      <td>${totalAmount}</td>
-                    </tr>
+                    </tr>     
                   </table>
                 </div>
-                <p>Please make the payment for this product within 30 minutes.</p>
+                <p>Please make the payment for this product By Clicking the Pay Now Button Below or else Go to the HarverstHub Website and then Pay the Amount for the Product !</p>
                 <button class="confirm-button">PAY NOW</button>
               </div>
-
               <div class="content__footer">
                 <h3>Thanks for using HarvestHub!</h3>
                 <p>www.harvesthub.io</p>
