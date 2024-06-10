@@ -418,10 +418,15 @@ export const placeBid = async (req, res) => {
     // Get current time in Indian Standard Time (IST) using Moment.js
     const currentTimeIST = moment().tz("Asia/Kolkata");
 
+    // Log times for debugging
+    console.log("Current Time (IST):", currentTimeIST.format());
+    console.log("Bid Start Time (IST):", moment(product.bidStartTime).tz("Asia/Kolkata").format());
+    console.log("Bid End Time (IST):", moment(product.bidEndTime).tz("Asia/Kolkata").format());
+
     // Check if current time is within bidding time
     if (
-      currentTimeIST < moment(product.bidStartTime).tz("Asia/Kolkata") ||
-      currentTimeIST > moment(product.bidEndTime).tz("Asia/Kolkata")
+      currentTimeIST.isBefore(moment(product.bidStartTime).tz("Asia/Kolkata")) ||
+      currentTimeIST.isAfter(moment(product.bidEndTime).tz("Asia/Kolkata"))
     ) {
       return res.status(400).json({ message: "Bidding time is not valid" });
     }
@@ -462,7 +467,7 @@ export const placeBid = async (req, res) => {
     await product.save();
 
     // Check if bidding time has ended
-    if (currentTimeIST > moment(product.bidEndTime).tz("Asia/Kolkata")) {
+    if (currentTimeIST.isAfter(moment(product.bidEndTime).tz("Asia/Kolkata"))) {
       // Update product bidding status to indicate bidding has ended
       product.biddingStatus = "Bidding Ended";
       await product.save();
