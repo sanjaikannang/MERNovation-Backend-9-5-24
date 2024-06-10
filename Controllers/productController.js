@@ -107,15 +107,9 @@ export const uploadProduct = async (req, res) => {
         .utc(savedProduct.endingDate)
         .tz("Asia/Kolkata")
         .format(),
-      bidStartTime: moment
-        .utc(savedProduct.bidStartTime)
-        .tz("Asia/Kolkata")
-        .format(),
-      bidEndTime: moment
-        .utc(savedProduct.bidEndTime)
-        .tz("Asia/Kolkata")
-        .format(),
-    };
+        bidStartTime: moment.utc(savedProduct.bidStartTime).subtract(5, 'hours').subtract(30, 'minutes').format(),
+        bidEndTime: moment.utc(savedProduct.bidEndTime).subtract(5, 'hours').subtract(30, 'minutes').format(),
+      };
 
     // Respond with success message and product details
     res.status(201).json({
