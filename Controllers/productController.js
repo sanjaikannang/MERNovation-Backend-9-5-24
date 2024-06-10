@@ -419,9 +419,9 @@ export const placeBid = async (req, res) => {
     const currentTimeIST = moment().tz("Asia/Kolkata");
 
     // Log times for debugging
-    console.log("Current Time (IST):", currentTimeIST.format());
-    console.log("Bid Start Time (IST):", moment(product.bidStartTime).tz("Asia/Kolkata").format());
-    console.log("Bid End Time (IST):", moment(product.bidEndTime).tz("Asia/Kolkata").format());
+    // console.log("Current Time (IST):", currentTimeIST.format());
+    // console.log("Bid Start Time (IST):", moment(product.bidStartTime).tz("Asia/Kolkata").format());
+    // console.log("Bid End Time (IST):", moment(product.bidEndTime).tz("Asia/Kolkata").format());
 
     // Check if current time is within bidding time
     if (
