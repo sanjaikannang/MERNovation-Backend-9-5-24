@@ -107,7 +107,7 @@ export const uploadProduct = async (req, res) => {
         .utc(savedProduct.endingDate)
         .tz("Asia/Kolkata")
         .format(),
-        bidStartTime: moment
+      bidStartTime: moment
         .utc(savedProduct.bidStartTime)
         .tz("Asia/Kolkata")
         .format(),
@@ -290,16 +290,16 @@ export const getSpecificProduct = async (req, res) => {
       bidEndTime: moment(product.bidEndTime).format(),
       order: order
         ? {
-            id: order._id,
-            amount: order.amount,
-            currency: order.currency,
-            receipt: order.receipt,
-            status: order.status, // Ensure the status is from the DB
-            buyer: order.buyer.name, // Include buyer name
-            farmer: order.farmer.name, // Include farmer name
-            createdAt: order.createdAt,
-            updatedAt: order.updatedAt,
-          }
+          id: order._id,
+          amount: order.amount,
+          currency: order.currency,
+          receipt: order.receipt,
+          status: order.status, // Ensure the status is from the DB
+          buyer: order.buyer.name, // Include buyer name
+          farmer: order.farmer.name, // Include farmer name
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+        }
         : null, // Include order details or null if no order found
     };
 
@@ -417,17 +417,21 @@ export const placeBid = async (req, res) => {
 
     // Get current time in Indian Standard Time (IST) using Moment.js
     const currentTimeIST = moment().tz("Asia/Kolkata");
+    console.log("Current Time (IST):", currentTimeIST.format());
 
-    // Log times for debugging
-    // console.log("Current Time (IST):", currentTimeIST.format());
-    // console.log("Bid Start Time (IST):", moment(product.bidStartTime).tz("Asia/Kolkata").format());
-    // console.log("Bid End Time (IST):", moment(product.bidEndTime).tz("Asia/Kolkata").format());
+
+    // Log product's bid start and end times
+    console.log("Bid Start Time (IST):", moment(product.bidStartTime).tz("Asia/Kolkata").format());
+    console.log("Bid End Time (IST):", moment(product.bidEndTime).tz("Asia/Kolkata").format());
+
+
 
     // Check if current time is within bidding time
     if (
       currentTimeIST.isBefore(moment(product.bidStartTime).tz("Asia/Kolkata")) ||
       currentTimeIST.isAfter(moment(product.bidEndTime).tz("Asia/Kolkata"))
     ) {
+      console.log("Bidding time is not valid");
       return res.status(400).json({ message: "Bidding time is not valid" });
     }
 
