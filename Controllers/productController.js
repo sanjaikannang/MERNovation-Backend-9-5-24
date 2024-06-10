@@ -107,8 +107,14 @@ export const uploadProduct = async (req, res) => {
         .utc(savedProduct.endingDate)
         .tz("Asia/Kolkata")
         .format(),
-      bidStartTime: moment.utc(savedProduct.bidStartTime).subtract(5, 'hours').subtract(30, 'minutes').tz("Asia/Kolkata").format(),
-      bidEndTime: moment.utc(savedProduct.bidEndTime).subtract(5, 'hours').subtract(30, 'minutes').tz("Asia/Kolkata").format(),
+        bidStartTime: moment
+        .utc(savedProduct.bidStartTime)
+        .tz("Asia/Kolkata")
+        .format(),
+      bidEndTime: moment
+        .utc(savedProduct.bidEndTime)
+        .tz("Asia/Kolkata")
+        .format(),
     };
 
     // Respond with success message and product details
@@ -284,16 +290,16 @@ export const getSpecificProduct = async (req, res) => {
       bidEndTime: moment(product.bidEndTime).format(),
       order: order
         ? {
-          id: order._id,
-          amount: order.amount,
-          currency: order.currency,
-          receipt: order.receipt,
-          status: order.status, // Ensure the status is from the DB
-          buyer: order.buyer.name, // Include buyer name
-          farmer: order.farmer.name, // Include farmer name
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-        }
+            id: order._id,
+            amount: order.amount,
+            currency: order.currency,
+            receipt: order.receipt,
+            status: order.status, // Ensure the status is from the DB
+            buyer: order.buyer.name, // Include buyer name
+            farmer: order.farmer.name, // Include farmer name
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+          }
         : null, // Include order details or null if no order found
     };
 
