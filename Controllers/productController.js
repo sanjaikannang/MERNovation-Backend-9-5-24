@@ -534,12 +534,9 @@ export const placeBid = async (req, res) => {
     }
 
     // Get current time in Indian Standard Time (IST) using Moment.js
-    const currentTime = new Date();
+    const currentTime = new Date(new Date().getTime() + (330 * 60 * 1000));
 
-    console.log(currentTime);  
-
-    var TotalBidAmount = product.totalBidAmount;
-    console.log(TotalBidAmount);
+    console.log(currentTime);      
 
     console.log(TotalBidAmount);
     
