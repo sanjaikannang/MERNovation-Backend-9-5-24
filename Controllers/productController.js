@@ -427,11 +427,12 @@ export const placeBid = async (req, res) => {
     console.log("Bid Start Time:", bidStartTimeFormatted);
     console.log("Bid End Time:", bidEndTimeFormatted);
 
-    // Check if current time is within bidding time
-    if (
-      currentTimeIST.isBefore(bidStartTimeFormatted) ||
-      currentTimeIST.isAfter(bidEndTimeFormatted)
-    ) {
+    // // Check if current time is within bidding time
+    // if (
+    //   currentTimeIST.isBefore(bidStartTimeFormatted) ||
+    //   currentTimeIST.isAfter(bidEndTimeFormatted)
+    // ) 
+    {
       console.log("Bidding time is not valid");
       return res.status(400).json({ message: "Bidding time is not valid" });
     }
