@@ -546,6 +546,8 @@ export const placeBid = async (req, res) => {
 
     // console.log(typeof(product.highestBid.amount));
 
+    var TotalBidAmount = product.totalBidAmount;
+
     // Check if the bid is within the bidding time range
     if (currentTime < product.bidStartTime || currentTime > product.bidEndTime) {
       return res.status(400).json({ message: "Bidding is not open for this product" });
