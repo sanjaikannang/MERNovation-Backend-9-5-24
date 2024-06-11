@@ -538,13 +538,13 @@ export const placeBid = async (req, res) => {
 
     console.log(currentTime);      
 
-    console.log(TotalBidAmount);
+    // console.log(TotalBidAmount);
     
-    console.log(product.highestBid.amount);
+    // console.log(product.highestBid.amount);
     
-    console.log(TotalBidAmount);
+    // console.log(TotalBidAmount);
 
-    console.log(typeof(product.highestBid.amount));
+    // console.log(typeof(product.highestBid.amount));
 
     // Check if the bid is within the bidding time range
     if (currentTime < product.bidStartTime || currentTime > product.bidEndTime) {
