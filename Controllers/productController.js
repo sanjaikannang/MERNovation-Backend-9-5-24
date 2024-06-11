@@ -38,10 +38,10 @@ export const uploadProduct = async (req, res) => {
     } = req.body;
 
     // Convert provided times to Date objects
-    const bidStart = new Date(bidStartTime);
-    const bidEnd = new Date(bidEndTime);
-    const start = new Date(startingDate);
-    const end = new Date(endingDate);
+    const bidStart = bidStartTime
+    const bidEnd = bidEndTime
+    const start = startingDate
+    const end = endingDate
 
     // Define minimum and maximum bidding duration
     const minDuration = 5 * 60 * 1000; // 10 minutes in milliseconds
@@ -435,7 +435,6 @@ export const placeBid = async (req, res) => {
       console.log("Bidding time is not valid");
       return res.status(400).json({ message: "Bidding time is not valid" });
     }
-
 
     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
     if (
