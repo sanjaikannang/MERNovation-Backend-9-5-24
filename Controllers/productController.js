@@ -415,7 +415,7 @@ export const placeBid = async (req, res) => {
     }
 
     // Get current time in Indian Standard Time (IST) using Moment.js
-    const currentTimeIST = moment().tz("Asia/Kolkata");
+    const currentTimeIST = moment().tz("Asia/Kolkata").format();
     console.log("Current Time (IST):", currentTimeIST.format());
 
     // Format bid start and end times in IST
