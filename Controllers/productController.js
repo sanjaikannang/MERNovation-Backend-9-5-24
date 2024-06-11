@@ -536,18 +536,11 @@ export const placeBid = async (req, res) => {
     // Get current time in Indian Standard Time (IST) using Moment.js
     const currentTime = new Date();
 
-    // Check if the bid is within the bidding time range
-    if (currentTime < product.bidStartTime || currentTime > product.bidEndTime) {
-      return res.status(400).json({ message: "Bidding is not open for this product" });
-    }
-
-    // Log product's bid start and end times
-    console.log("Bid Start Time:", product.bidStartTime);
-    console.log("Bid End Time:", product.bidEndTime);
-
     console.log(currentTime);  
 
     var TotalBidAmount = product.totalBidAmount;
+    console.log(TotalBidAmount);
+
     console.log(TotalBidAmount);
     
     console.log(product.highestBid.amount);
@@ -556,6 +549,15 @@ export const placeBid = async (req, res) => {
 
     console.log(typeof(product.highestBid.amount));
 
+    // Check if the bid is within the bidding time range
+    if (currentTime < product.bidStartTime || currentTime > product.bidEndTime) {
+      return res.status(400).json({ message: "Bidding is not open for this product" });
+    }
+
+    // Log product's bid start and end times
+    console.log("Bid Start Time:", product.bidStartTime);
+    console.log("Bid End Time:", product.bidEndTime);    
+    
     // Check if the bid amount is valid
     if(( product.highestBid.amount || TotalBidAmount ) >= bidAmount)
     {
