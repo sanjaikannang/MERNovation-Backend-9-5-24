@@ -437,7 +437,7 @@ export const placeBid = async (req, res) => {
 
     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
     if (
-      currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted) &&
+      // currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted) &&
       bidAmount <= product.totalBidAmount &&
       (product.highestBid && bidAmount <= product.highestBid.amount)
     ) {
