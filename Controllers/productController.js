@@ -539,6 +539,10 @@ export const placeBid = async (req, res) => {
     const bidStartTimeFormatted = moment.tz(product.bidStartTime, "Asia/Kolkata");
     const bidEndTimeFormatted = moment.tz(product.bidEndTime, "Asia/Kolkata");
 
+    // Log product's bid start and end times
+    console.log("Bid Start Time:", bidStartTimeFormatted);
+    console.log("Bid End Time:", bidEndTimeFormatted);
+
     // Check if the bid is within the bidding time range
     if (!currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted)) {
       return res.status(400).json({ message: "Bidding is not open for this product" });
