@@ -419,23 +419,23 @@ export const placeBid = async (req, res) => {
     const currentTimeIST = moment().tz("Asia/Kolkata");
     console.log("Current Time (IST):", currentTimeIST.format());
 
+    // Format bid start and end times in IST
+    const bidStartTimeFormatted = moment(product.bidStartTime).format();
+    const bidEndTimeFormatted = moment(product.bidEndTime).format();
 
     // Log product's bid start and end times
-    console.log("Bid Start Time:", moment(product.bidStartTime).format());
-    console.log("Bid End Time:", moment(product.bidEndTime).format());
+    console.log("Bid Start Time:", bidStartTimeFormatted);
+    console.log("Bid End Time:", bidEndTimeFormatted);
 
-
-    console.log(product.bidStartTime);
-    console.log(product.bidEndTime);
-    
     // Check if current time is within bidding time
     if (
-      currentTimeIST.format().isBefore(moment(product.bidStartTime).format()) ||
-      currentTimeIST.format().isAfter(moment(product.bidEndTime).format())
+      currentTimeIST.isBefore(bidStartTimeFormatted) ||
+      currentTimeIST.isAfter(bidEndTimeFormatted)
     ) {
       console.log("Bidding time is not valid");
       return res.status(400).json({ message: "Bidding time is not valid" });
     }
+
 
     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
     if (
