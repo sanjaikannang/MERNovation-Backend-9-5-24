@@ -415,7 +415,7 @@ export const placeBid = async (req, res) => {
     }
 
     // Get current time in Indian Standard Time (IST) using Moment.js
-    const currentTimeIST = moment().tz("Asia/Kolkata").format();
+    const currentTimeIST = moment().tz("Asia/Kolkata");
     console.log("Current Time (IST):", currentTimeIST.format());
 
     // Format bid start and end times in IST
@@ -437,8 +437,7 @@ export const placeBid = async (req, res) => {
 
     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
     if (
-      currentTimeIST.isBefore(bidStartTimeFormatted) ||
-      currentTimeIST.isAfter(bidEndTimeFormatted) &&
+      currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted) &&
       bidAmount <= product.totalBidAmount &&
       (product.highestBid && bidAmount <= product.highestBid.amount)
     ) {
