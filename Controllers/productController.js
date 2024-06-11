@@ -526,30 +526,39 @@ export const placeBid = async (req, res) => {
     // Find the product by ID and populate necessary fields
     const product = await Product.findById(productId)
       .populate("bids")
-      .populate("highestBid.bidder");
+      .populate("highestBid.bidder")
+      .populate("totalBidAmount");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     // Get current time in Indian Standard Time (IST) using Moment.js
-    const currentTimeIST = moment().tz("Asia/Kolkata");
-
-    // Format bid start and end times in IST
-    const bidStartTimeFormatted = moment.tz(product.bidStartTime, "Asia/Kolkata");
-    const bidEndTimeFormatted = moment.tz(product.bidEndTime, "Asia/Kolkata");
-
-    // Log product's bid start and end times
-    console.log("Bid Start Time:", bidStartTimeFormatted);
-    console.log("Bid End Time:", bidEndTimeFormatted);
+    const currentTime = new Date();
 
     // Check if the bid is within the bidding time range
-    if (!currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted)) {
+    if (currentTime < product.bidStartTime || currentTime > product.bidEndTime) {
       return res.status(400).json({ message: "Bidding is not open for this product" });
     }
 
+    // Log product's bid start and end times
+    console.log("Bid Start Time:", product.bidStartTime);
+    console.log("Bid End Time:", product.bidEndTime);
+
+    console.log(currentTime);  
+
+    var TotalBidAmount = product.totalBidAmount;
+    console.log(TotalBidAmount);
+    
+    console.log(product.highestBid.amount);
+    
+    console.log(TotalBidAmount);
+
+    console.log(typeof(product.highestBid.amount));
+
     // Check if the bid amount is valid
-    if (bidAmount > product.totalBidAmount || bidAmount <= (product.highestBid?.amount || 0)) {
+    if(( product.highestBid.amount || TotalBidAmount ) >= bidAmount)
+    {
       return res.status(400).json({
         message: "Bid amount must be higher than the total bid amount and the current highest bid",
       });
@@ -560,7 +569,7 @@ export const placeBid = async (req, res) => {
       product: productId,
       bidder: req.user._id,
       amount: bidAmount,
-      bidTime: currentTimeIST,
+      bidTime: currentTime,
     });
 
     // Save the new bid to the database
@@ -571,14 +580,14 @@ export const placeBid = async (req, res) => {
     product.highestBid = {
       bidder: req.user._id,
       amount: bidAmount,
-      bidTime: currentTimeIST,
+      bidTime: currentTime,
     };
 
     // Save the updated product to the database
     await product.save();
 
     // Check if bidding time has ended
-    if (currentTimeIST.isAfter(bidEndTimeFormatted)) {
+    if (currentTime > product.bidEndTime) {
       // Update product bidding status to indicate bidding has ended
       product.biddingStatus = "Bidding Ended";
       await product.save();
