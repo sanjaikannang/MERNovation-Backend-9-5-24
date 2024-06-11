@@ -419,8 +419,8 @@ export const placeBid = async (req, res) => {
     console.log("Current Time (IST):", currentTimeIST.format());
 
     // Format bid start and end times in IST
-    const bidStartTimeFormatted = moment(product.bidStartTime).format();
-    const bidEndTimeFormatted = moment(product.bidEndTime).format();
+    const bidStartTimeFormatted = moment.tz(product.bidStartTime,"Asia/Kolkata");
+    const bidEndTimeFormatted = moment.tz(product.bidEndTime,"Asia/Kolkata");
 
     // Log product's bid start and end times
     console.log("Bid Start Time:", bidStartTimeFormatted);
