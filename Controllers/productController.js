@@ -491,7 +491,7 @@ export const placeBid = async (req, res) => {
   } catch (error) {
     // Handle any errors that occur
     console.error("Error placing bid:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: error });
   }
 };
 
