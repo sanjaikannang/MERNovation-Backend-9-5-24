@@ -432,10 +432,10 @@ export const placeBid = async (req, res) => {
     //   currentTimeIST.isBefore(bidStartTimeFormatted) ||
     //   currentTimeIST.isAfter(bidEndTimeFormatted)
     // ) 
-    {
-      console.log("Bidding time is not valid");
-      return res.status(400).json({ message: "Bidding time is not valid" });
-    }
+    // {
+    //   console.log("Bidding time is not valid");
+    //   return res.status(400).json({ message: "Bidding time is not valid" });
+    // }
 
     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
     if (
