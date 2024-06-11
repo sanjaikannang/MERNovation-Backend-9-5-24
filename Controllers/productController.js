@@ -425,6 +425,9 @@ export const placeBid = async (req, res) => {
     console.log("Bid End Time:", moment(product.bidEndTime).format());
 
 
+    console.log(product.bidStartTime);
+    console.log(product.bidEndTime);
+    
     // Check if current time is within bidding time
     if (
       currentTimeIST.isBefore(moment(product.bidStartTime)) ||
