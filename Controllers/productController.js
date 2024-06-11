@@ -397,7 +397,124 @@ export const getCurrentLoginBuyerDetails = async (req, res) => {
 scheduleCronJob();
 
 // Controller function to place a bid on a product
+// export const placeBid = async (req, res) => {
+//     const { productId } = req.params; // Get product ID from request params
+//     const { bidAmount } = req.body; // Get bid amount from request body
+
+//     // Validate product ID
+//     if (!mongoose.Types.ObjectId.isValid(productId)) {
+//       return res.status(400).json({ message: "Invalid product ID" });
+//     }
+
+//     // Find the product by ID and populate bids and highestBid.bidder
+//     const product = await Product.findById(productId)
+//       .populate("bids")
+//       .populate("highestBid.bidder");
+//     if (!product) {
+//       return res.status(404).json({ message: "Product not found" });
+//     }
+
+//     // Get current time in Indian Standard Time (IST) using Moment.js
+//     const currentTimeIST = moment().tz("Asia/Kolkata");
+//     console.log("Current Time (IST):", currentTimeIST.format());
+
+//     // Format bid start and end times in IST
+//     const bidStartTimeFormatted = moment.tz(product.bidStartTime,"Asia/Kolkata");
+//     const bidEndTimeFormatted = moment.tz(product.bidEndTime,"Asia/Kolkata");
+
+//     // Log product's bid start and end times
+//     console.log("Bid Start Time:", bidStartTimeFormatted);
+//     console.log("Bid End Time:", bidEndTimeFormatted);
+
+//     // // Check if current time is within bidding time
+//     // if (
+//       // currentTimeIST.isBefore(bidStartTimeFormatted)
+//     // ) 
+//     // {
+//     //   console.log("Bidding time is not valid");
+//     //   return res.status(400).json({ message: "Bidding time is not valid" });
+//     // }
+
+//     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
+//     if (!currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted)) {
+//       return res.status(400).json({ message: "Bidding is not open for this product" });
+//     }
+
+//     // Check if the bid amount is valid
+//     if (bidAmount > product.totalBidAmount || bidAmount <= (product.highestBid?.amount || 0)) {
+//       return res.status(400).json({
+//         message: "Bid amount must be higher than the total bid amount and the current highest bid",
+//       });
+//     }
+
+
+//     // if (
+//     //   // currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted) &&
+//     //   bidAmount <= product.totalBidAmount &&
+//     //   (product.highestBid && bidAmount <= product.highestBid.amount)
+//     // ) 
+//     {
+
+//       // Create a new Bid object
+//     const newBid = new Bid({
+//       product: productId,
+//       bidder: req.user._id,
+//       amount: bidAmount,
+//       bidTime: currentTimeIST,
+//     });
+
+//     // Save the new bid to the database
+//     await newBid.save();
+
+//     // Update product's bids array and highest bid
+//     product.bids.push(newBid._id);
+//     product.highestBid = {
+//       bidder: req.user._id,
+//       amount: bidAmount,
+//       bidTime: currentTimeIST,
+//     };
+
+//     // Save the updated product to the database
+//     await product.save();
+
+//     // Check if bidding time has ended
+//     // if (currentTimeIST.isAfter(moment(product.bidEndTime))) {
+//     //   // Update product bidding status to indicate bidding has ended
+//     //   product.biddingStatus = "Bidding Ended";
+//     //   await product.save();
+
+//     //   // Send email to the winning bidder
+//     //   await sendWinningBidEmail(product.highestBid.bidder.email, product);
+//     // }
+
+//     // Respond with success message and the new bid
+//     res.status(201).json({
+//       message: "Bid placed successfully",
+//       bid: newBid,
+//     });
+
+//   //   catch (error) {
+//   //   // Handle any errors that occur
+//   //   console.error("Error placing bid:", error);
+//   //   res.status(500).json({ message: "Internal Server Error" });
+//   // }
+
+//     }
+//     // else {
+//     //   return res
+//     //     .status(400)
+//     //     .json({
+//     //       message:
+//     //         "Bid amount must be higher than the total bid amount and other buyer bid amounts",
+//     //     });
+//     //   }
+//     // }
+//   }
+
+
+// for referenc
 export const placeBid = async (req, res) => {
+  try {
     const { productId } = req.params; // Get product ID from request params
     const { bidAmount } = req.body; // Get bid amount from request body
 
@@ -406,43 +523,35 @@ export const placeBid = async (req, res) => {
       return res.status(400).json({ message: "Invalid product ID" });
     }
 
-    // Find the product by ID and populate bids and highestBid.bidder
+    // Find the product by ID and populate necessary fields
     const product = await Product.findById(productId)
       .populate("bids")
       .populate("highestBid.bidder");
+
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     // Get current time in Indian Standard Time (IST) using Moment.js
     const currentTimeIST = moment().tz("Asia/Kolkata");
-    console.log("Current Time (IST):", currentTimeIST.format());
 
     // Format bid start and end times in IST
-    const bidStartTimeFormatted = moment.tz(product.bidStartTime,"Asia/Kolkata");
-    const bidEndTimeFormatted = moment.tz(product.bidEndTime,"Asia/Kolkata");
+    const bidStartTimeFormatted = moment.tz(product.bidStartTime, "Asia/Kolkata");
+    const bidEndTimeFormatted = moment.tz(product.bidEndTime, "Asia/Kolkata");
 
-    // Log product's bid start and end times
-    console.log("Bid Start Time:", bidStartTimeFormatted);
-    console.log("Bid End Time:", bidEndTimeFormatted);
+    // Check if the bid is within the bidding time range
+    if (!currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted)) {
+      return res.status(400).json({ message: "Bidding is not open for this product" });
+    }
 
-    // // Check if current time is within bidding time
-    // if (
-      // currentTimeIST.isBefore(bidStartTimeFormatted)
-    // ) 
-    // {
-    //   console.log("Bidding time is not valid");
-    //   return res.status(400).json({ message: "Bidding time is not valid" });
-    // }
+    // Check if the bid amount is valid
+    if (bidAmount > product.totalBidAmount || bidAmount <= (product.highestBid?.amount || 0)) {
+      return res.status(400).json({
+        message: "Bid amount must be higher than the total bid amount and the current highest bid",
+      });
+    }
 
-    // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
-    if (
-      // currentTimeIST.isBetween(bidStartTimeFormatted, bidEndTimeFormatted) &&
-      bidAmount <= product.totalBidAmount &&
-      (product.highestBid && bidAmount <= product.highestBid.amount)
-    ) {
-
-      // Create a new Bid object
+    // Create a new Bid object
     const newBid = new Bid({
       product: productId,
       bidder: req.user._id,
@@ -465,7 +574,7 @@ export const placeBid = async (req, res) => {
     await product.save();
 
     // Check if bidding time has ended
-    if (currentTimeIST.isAfter(moment(product.bidEndTime))) {
+    if (currentTimeIST.isAfter(bidEndTimeFormatted)) {
       // Update product bidding status to indicate bidding has ended
       product.biddingStatus = "Bidding Ended";
       await product.save();
@@ -479,23 +588,12 @@ export const placeBid = async (req, res) => {
       message: "Bid placed successfully",
       bid: newBid,
     });
+  } catch (error) {
+    console.error("Error placing bid:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
-  //   catch (error) {
-  //   // Handle any errors that occur
-  //   console.error("Error placing bid:", error);
-  //   res.status(500).json({ message: "Internal Server Error" });
-  // }
-
-    }
-    else {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Bid amount must be higher than the total bid amount and other buyer bid amounts",
-        });
-      }
-    }
 
     
   
