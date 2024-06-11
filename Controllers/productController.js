@@ -398,7 +398,6 @@ scheduleCronJob();
 
 // Controller function to place a bid on a product
 export const placeBid = async (req, res) => {
-  try {
     const { productId } = req.params; // Get product ID from request params
     const { bidAmount } = req.body; // Get bid amount from request body
 
@@ -428,28 +427,23 @@ export const placeBid = async (req, res) => {
     console.log("Bid End Time:", bidEndTimeFormatted);
 
     // // Check if current time is within bidding time
-    if (
-      currentTimeIST.isBefore(bidStartTimeFormatted)
-    ) 
-    {
-      console.log("Bidding time is not valid");
-      return res.status(400).json({ message: "Bidding time is not valid" });
-    }
+    // if (
+      // currentTimeIST.isBefore(bidStartTimeFormatted)
+    // ) 
+    // {
+    //   console.log("Bidding time is not valid");
+    //   return res.status(400).json({ message: "Bidding time is not valid" });
+    // }
 
     // Check if bid amount is above the total bid amount of the product or other buyer bid amounts
     if (
-      bidAmount <= product.totalBidAmount ||
+      currentTimeIST.isBefore(bidStartTimeFormatted) &&
+      currentTimeIST.isAfter(bidEndTimeFormatted) &&
+      bidAmount <= product.totalBidAmount &&
       (product.highestBid && bidAmount <= product.highestBid.amount)
     ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Bid amount must be higher than the total bid amount and other buyer bid amounts",
-        });
-    }
 
-    // Create a new Bid object
+      // Create a new Bid object
     const newBid = new Bid({
       product: productId,
       bidder: req.user._id,
@@ -486,12 +480,26 @@ export const placeBid = async (req, res) => {
       message: "Bid placed successfully",
       bid: newBid,
     });
-  } catch (error) {
-    // Handle any errors that occur
-    console.error("Error placing bid:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-};
+
+  //   catch (error) {
+  //   // Handle any errors that occur
+  //   console.error("Error placing bid:", error);
+  //   res.status(500).json({ message: "Internal Server Error" });
+  // }
+
+    }
+    else {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Bid amount must be higher than the total bid amount and other buyer bid amounts",
+        });
+      }
+    }
+
+    
+  
 
 
 // Controller to get all bids for a product
