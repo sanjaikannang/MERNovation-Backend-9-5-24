@@ -11,7 +11,7 @@ export const scheduleCronJob = () => {
 
       // Find all products where bidding time has ended and bidding status is not 'Bidding Ended'
       const products = await Product.find({
-        bidEndTime: { $lt: new Date() },
+        bidEndTime: { $lt: new Date(new Date().getTime() + (330 * 60 * 1000)) },
         biddingStatus: { $ne: 'Bidding Ended' }
       }).populate('highestBid.bidder'); // Populate the bidder field to get email
 
