@@ -544,18 +544,7 @@ export const placeBid = async (req, res) => {
     
     // console.log(TotalBidAmount);
 
-    // console.log(typeof(product.highestBid.amount));
-
-      // Check if bidding time has ended
-      if (currentTime > product.bidEndTime) {
-        // Update product bidding status to indicate bidding has ended
-        product.biddingStatus = "Bidding Ended";
-        await product.save();
-  
-        // Send email to the winning bidder
-        await sendWinningBidEmail(product.highestBid.bidder.email, product);
-      }
-  
+    // console.log(typeof(product.highestBid.amount));       
 
     var TotalBidAmount = product.totalBidAmount;
 
@@ -598,6 +587,15 @@ export const placeBid = async (req, res) => {
     // Save the updated product to the database
     await product.save();
 
+     // Check if bidding time has ended
+     if (currentTime > product.bidEndTime) {
+      // Update product bidding status to indicate bidding has ended
+      product.biddingStatus = "Bidding Ended";
+      await product.save();
+
+      // Send email to the winning bidder
+      await sendWinningBidEmail(product.highestBid.bidder.email, product);
+    }
   
     // Respond with success message and the new bid
     res.status(201).json({
