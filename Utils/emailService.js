@@ -20,6 +20,8 @@ export const sendWinningBidEmail = async (winningBidderEmail, product) => {
 
     // const totalAmount = product.quantity * product.highestBid.amount;
     const totalBidAmount = product.quantity * product.startingPrice;
+    const productPageUrl = `https://peaceful-cupcake-a7b594.netlify.app/buyer-product-details/${product.id}`;
+    console.log("Pay Now Link :", productPageUrl);
 
     // Construct HTML email content
     const htmlContent = `
@@ -275,8 +277,8 @@ export const sendWinningBidEmail = async (winningBidderEmail, product) => {
                     </tr>     
                   </table>
                 </div>
-                <p>Please make the payment for this product By Clicking the Pay Now Button Below or else Go to the HarverstHub Website and then Pay the Amount for the Product !</p>
-                <button class="confirm-button">PAY NOW</button>
+                <p>Please make the payment for this product By Clicking the Pay Now Button Below or else Go to the HarverstHub Website and then Pay the Amount for the Product !</p>                
+                <a href="${productPageUrl}" class="confirm-button">PAY NOW</a>
               </div>
               <div class="content__footer">
                 <h3>Thanks for using HarvestHub!</h3>
