@@ -44,7 +44,7 @@ export const uploadProduct = async (req, res) => {
     const end = endingDate
 
     // Define minimum and maximum bidding duration
-    const minDuration = 10 * 60 * 1000; // 10 minutes in milliseconds
+    const minDuration = 5 * 60 * 1000; // 10 minutes in milliseconds
     const maxDuration = 1 * 60 * 60 * 1000; // 1 hour in milliseconds
 
     // Validate bidding time
